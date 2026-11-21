@@ -17,7 +17,7 @@ capture establishes, using three labels:
 | SSPR reset accepted | Observed | "Your password has been reset" confirmation |
 | Writeback | Operator-confirmed | Credentialed query to the DC succeeded with the SSPR password |
 | SSO GPO applied | Observed | `gpresult` shows the GPO applied; zone value `1` |
-| Seamless SSO (Kerberos path) | Observed + operator-confirmed | Ticket and device state below; password-free browser result reported |
+| Seamless SSO (Kerberos path) | Observed + operator-confirmed | Ticket and device state below, re-observed by the validation script on 2026-11-21 in the synced user's session; password-free browser result reported |
 | Hybrid device join / Autopilot | Not claimed | Client is AD joined only |
 
 ## Seamless SSO capture (redacted transcription)
@@ -70,9 +70,9 @@ client, and are not used as evidence.
 | Device state | Recorded | `DomainJoined=YES AzureAdJoined=NO AzureAdPrt=NO` |
 | Seamless SSO ticket | Pass | Ticket present for `HTTP/autologon.microsoftazuread-sso.com` after opening the test URL |
 
-Session owner for this run: _pending `whoami` / `klist` client confirmation_.
-The ticket only evidences Seamless SSO for the synced user if the session is
-that user's.
+Session owner: `whoami` in the same session returned the synchronized lab
+user (`AD\lab-user`). `klist` lists the current logon session's tickets, so
+the SSO ticket belongs to that user.
 
 ## Gaps that would strengthen this
 

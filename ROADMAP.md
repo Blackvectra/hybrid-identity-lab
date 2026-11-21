@@ -10,9 +10,9 @@
 - [ ] Protect `AZUREADSSOACC` from accidental deletion and restrict who can
       administer it
 - [ ] Run `scripts/Test-HybridLabState.ps1` and keep its output as the
-      baseline (DC01 and SYNC01 done 2026-11-21; CLIENT01 pending)
+      baseline (DC01, SYNC01, CLIENT01 done 2026-11-21)
 - [x] DC01 time source: external NTP configured 2026-11-21
-- [ ] Check CLIENT01's time source is the domain hierarchy
+- [x] CLIENT01 time source is DC01
 
 ## Separate future projects
 

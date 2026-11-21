@@ -60,7 +60,19 @@ client, and are not used as evidence.
 | Time source (manual check) | Fixed | Was Local CMOS Clock; now `DC01`, stratum 2, synced |
 | Secure channel | Fail, then Pass | Failed on first run; passed after the time service was joined to the domain hierarchy. See troubleshooting.md |
 
-Pending: CLIENT01 (device state and SSO ticket after opening the test URL).
+### CLIENT01 (2026-11-21)
+
+| Check | Status | Detail |
+|---|---|---|
+| Time source (manual check) | Pass | `DC01` |
+| AD locator SRV (default resolver) | Pass | `dc01.ad.example.invalid` |
+| Secure channel | Pass | |
+| Device state | Recorded | `DomainJoined=YES AzureAdJoined=NO AzureAdPrt=NO` |
+| Seamless SSO ticket | Pass | Ticket present for `HTTP/autologon.microsoftazuread-sso.com` after opening the test URL |
+
+Session owner for this run: _pending `whoami` / `klist` client confirmation_.
+The ticket only evidences Seamless SSO for the synced user if the session is
+that user's.
 
 ## Gaps that would strengthen this
 

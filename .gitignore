@@ -1,0 +1,4 @@
+# Raw captures contain real identifiers. Sanitize before adding.
+evidence/
+*.evtx
+*.csv

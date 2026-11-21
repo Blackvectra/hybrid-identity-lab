@@ -15,24 +15,37 @@ Where to look, in order:
 Use a dedicated test user (`sync-test1`, `sync-test2`) in `Lab-ConnectSync`,
 not the main lab user.
 
-## 1. Duplicate UPN (AttributeValueMustBeUnique)
+## 1. Duplicate proxy address (AttributeValueMustBeUnique)
 
-- **Break.** Give `sync-test2` the same UPN as `sync-test1`, then run a delta sync:
+A duplicate **UPN** can't be used here: domain controllers since Windows
+Server 2012 R2 reject a UPN that already exists in the forest
+(`ERROR_DS_UPN_VALUE_NOT_UNIQUE_IN_FOREST`), so nothing would reach Entra.
+See [SPN and UPN uniqueness](https://learn.microsoft.com/windows-server/identity/ad-ds/manage/component-updates/spn-and-upn-uniqueness).
+AD does not enforce uniqueness on `proxyAddresses`, so a duplicate SMTP
+alias does reach Entra.
+
+- **Break.** Give both synced test users the same secondary alias, then run a
+  delta sync:
 
 ```powershell
-Set-ADUser sync-test2 -UserPrincipalName "sync-test1@example.com"
+Set-ADUser sync-test1 -Add @{proxyAddresses = "smtp:shared-alias@example.com"}
+Set-ADUser sync-test2 -Add @{proxyAddresses = "smtp:shared-alias@example.com"}
 Start-ADSyncSyncCycle -PolicyType Delta   # on SYNC01
 ```
 
 - **Expect.** With duplicate attribute resiliency (on by default), Entra
-  doesn't fail the export. It quarantines the conflict and gives the second
-  user a placeholder UPN of the form `<prefix>+<4 digits>@<tenant>.onmicrosoft.com`.
-  So the sync engine may report **no error** even though the cloud object is
-  wrong.
+  doesn't fail the export. It quarantines the conflicting proxy address on
+  the second object and records it in that object's provisioning errors. The
+  sync engine may report **no error** even though one cloud object is missing
+  the alias.
 - **Learn.** "Sync succeeded" and "the cloud object is correct" are different
   claims. Find the conflict on the cloud object, not in Run History.
-- **Fix.** Restore the unique UPN on-premises and sync. Entra releases the
-  quarantine (a background task runs hourly).
+- **Fix.** Remove the alias from one user on-premises and sync. Entra releases
+  the quarantine (a background task runs hourly).
+
+```powershell
+Set-ADUser sync-test2 -Remove @{proxyAddresses = "smtp:shared-alias@example.com"}
+```
 
 ## 2. Object moved out of scope (soft delete)
 
@@ -87,7 +100,8 @@ Enable-ADSyncExportDeletionThreshold -DeletionThreshold 500 -AADUserName "<hybri
 
 ## Reset checklist after every scenario
 
-- [ ] Test users back in `Lab-ConnectSync` with their original UPNs
+- [ ] Test users back in `Lab-ConnectSync` with their original UPNs and no
+      leftover `shared-alias` proxy address
 - [ ] Deletion threshold back at its recorded value
 - [ ] `ADSync` service running; `Get-ADSyncScheduler` shows
       `StagingModeEnabled False`, `SyncCycleEnabled True`

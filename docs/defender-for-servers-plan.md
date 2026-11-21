@@ -41,16 +41,28 @@ Source: [Defender for Servers plan features](https://learn.microsoft.com/azure/d
 
 ## Steps
 
-1. Create or choose the Azure subscription in the lab tenant. Set a budget alert.
-2. In the Defender portal, download the Windows Server onboarding package
-   (local script method is fine for three VMs) and run it on `DC01` and `SYNC01`.
-   Optionally onboard `CLIENT01` as a workstation for comparison.
-3. Check each server is healthy in the Defender device inventory.
-4. Defender for Cloud > **Environment settings** > **Direct onboarding** >
-   **On**, choose the subscription, **Save**. Enable the Defender for Servers
-   plan on that subscription and **record the trial end date**.
-5. Wait up to 24 hours, then confirm the servers appear under the subscription
-   with the intended plan, and no duplicate records.
+Order matters: servers need a licence before they can be onboarded to
+Defender for Endpoint, and in this lab the Defender for Servers plan is what
+provides it ([server onboarding prerequisites](https://learn.microsoft.com/defender-endpoint/onboard-server#server-plans)).
+Enable the entitlement first, onboard second.
+
+1. Create or choose the Azure subscription in the lab tenant, with **Owner**
+   for your account. Set a budget alert.
+2. In Defender for Cloud, enable **Defender for Servers** on that subscription
+   and **record the trial end date** (the 30 days start now).
+3. Defender for Cloud > **Environment settings** > **Direct onboarding** >
+   **On**, choose the same subscription, **Save**.
+4. Open the Defender portal and let the Defender for Endpoint tenant finish
+   provisioning, if this is the tenant's first use of it.
+5. Download the Windows Server onboarding package (local script method is
+   fine for three VMs) and run it on `DC01` and `SYNC01`.
+6. Check each server is healthy in the Defender device inventory.
+7. Wait up to 24 hours, then confirm the servers appear under the subscription
+   in Defender for Cloud with the intended plan, and no duplicate records.
+
+`CLIENT01` is a workstation: it needs a client licence (the lab's M365
+licensing may cover it) rather than the server plan, so treat onboarding it as
+optional and separate.
 
 ## Tests and evidence
 

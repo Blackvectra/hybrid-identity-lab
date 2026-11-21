@@ -10,7 +10,7 @@
 - [ ] Protect `AZUREADSSOACC` from accidental deletion and restrict who can
       administer it
 - [ ] Run `scripts/Test-HybridLabState.ps1` and keep its output as the
-      baseline
+      baseline (DC01 done 2026-11-21; SYNC01 and CLIENT01 pending)
 
 ## Separate future projects
 

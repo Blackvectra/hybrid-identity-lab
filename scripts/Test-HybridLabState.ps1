@@ -1,8 +1,9 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-Read-only checks for the hybrid identity lab. Run on the host named in each
-check's Host column; checks that don't apply to the current machine are
+Read-only checks for the hybrid identity lab. Save the file and run it; do not paste
+it into a console (the param block will not bind). Run it on the host named
+in each check's ExpectedOn column; checks that don't apply to the current machine are
 reported as NotAssessed, not as failures.
 
 .DESCRIPTION
@@ -11,7 +12,7 @@ check with Status Pass, Fail, NotAssessed, or Error. Makes no changes.
 
 .EXAMPLE
 .\Test-HybridLabState.ps1 -Domain ad.example.invalid -DcAddress 10.0.0.5 |
-    Format-Table Check, Status, Detail -AutoSize
+    Format-Table Check, RanOn, ExpectedOn, Status, Detail -AutoSize -Wrap
 #>
 [CmdletBinding()]
 param(
@@ -19,8 +20,10 @@ param(
     [Parameter(Mandatory)][string]$DcAddress
 )
 
-function New-Result([string]$Check, [string]$TargetHost, [string]$Status, [string]$Detail) {
-    [pscustomobject]@{ Check = $Check; Host = $TargetHost; Status = $Status; Detail = $Detail }
+# RanOn is the machine that actually produced the result; ExpectedOn is where
+# the check is meant to run. Compare them before trusting a row as evidence.
+function New-Result([string]$Check, [string]$ExpectedOn, [string]$Status, [string]$Detail) {
+    [pscustomobject]@{ Check = $Check; RanOn = $env:COMPUTERNAME; ExpectedOn = $ExpectedOn; Status = $Status; Detail = $Detail }
 }
 
 # 1. Any domain member: AD locator record resolves through the configured resolver.

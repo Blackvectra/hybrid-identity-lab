@@ -103,9 +103,19 @@ w32tm /resync
   - A member server that never joined the domain time hierarchy will
     eventually break Kerberos (5-minute skew limit) even while sync looks fine.
   - "Sync is working" says nothing about the sync server's own domain health.
-  - Open item: `DC01` is the domain's time root and its own source has not
-    been checked. In VMware, either give it an external NTP source or disable
-    VMware Tools time sync for that VM so the two don't fight.
+- **Follow-up on the time root.** `DC01` (the PDC emulator, so the domain's
+  time root) was itself on **Local CMOS Clock** (stratum 1, `LOCL`): the whole
+  domain was following an unsynced hardware clock. VMware Tools periodic time
+  sync was already disabled. Pointed `DC01` at an external source:
+
+```powershell
+w32tm /config /manualpeerlist:"time.windows.com,0x8" /syncfromflags:manual /reliable:yes /update
+Restart-Service w32time
+w32tm /resync /rediscover
+```
+
+  Result: source `time.windows.com,0x8`, stratum 5, synced. Domain time now
+  runs external NTP → `DC01` → members.
 
 ## Not the same failure
 

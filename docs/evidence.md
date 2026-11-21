@@ -46,6 +46,7 @@ KDC:              DC01.ad.example.invalid
 | Secure channel | NotAssessed | Domain controller; member check does not apply |
 | AZUREADSSOACC present | Pass | Enabled; Kerberos key 5 days old (rollover due within 30 days of creation) |
 | Minimum password age | Recorded | `00:00:00`: the lab exception is in effect (previously not captured) |
+| Time source (manual check) | Fixed | Was Local CMOS Clock; now external NTP, stratum 5, synced |
 
 Device-state and SSO-ticket rows from this run came from the DC, not the
 client, and are not used as evidence.
@@ -56,6 +57,7 @@ client, and are not used as evidence.
 |---|---|---|
 | AD locator SRV (default resolver) | Pass | `dc01.ad.example.invalid` |
 | Connect scheduler | Pass | `Staging=False Scheduler=True` (now observed directly, not only from the earlier capture) |
+| Time source (manual check) | Fixed | Was Local CMOS Clock; now `DC01`, stratum 2, synced |
 | Secure channel | Fail, then Pass | Failed on first run; passed after the time service was joined to the domain hierarchy. See troubleshooting.md |
 
 Pending: CLIENT01 (device state and SSO ticket after opening the test URL).

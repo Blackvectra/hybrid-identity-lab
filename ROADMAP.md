@@ -14,6 +14,11 @@
 - [x] DC01 time source: external NTP configured 2026-11-21
 - [x] CLIENT01 time source is DC01
 
+## Planned next
+
+- [ ] Sync error scenarios: [docs/sync-error-scenarios.md](docs/sync-error-scenarios.md)
+- [ ] Defender for Servers trial without Arc: [docs/defender-for-servers-plan.md](docs/defender-for-servers-plan.md)
+
 ## Separate future projects
 
 - [ ] Entra hybrid device join (SCP, device OU in sync scope) and PRT-based SSO,

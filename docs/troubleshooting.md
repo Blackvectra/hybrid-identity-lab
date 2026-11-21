@@ -70,6 +70,53 @@ Get-ADDefaultDomainPasswordPolicy -Identity "ad.example.invalid" | Select-Object
   in without a password. Then confirmed with Kerberos evidence rather than the
   browser result alone.
 
+## Secure channel check failed on the sync server
+
+Found by the validation script on 2026-11-21, after the core lab was complete.
+
+- **Observed.** On `SYNC01`, `Test-ComputerSecureChannel` returned False
+  ("broken"), while `nltest /sc_query` reported `NERR_Success` against `DC01`.
+  The System log held only NETLOGON **5719** events ("not able to set up a
+  secure session"), clustered at server start-up times; no 3210 or 5722.
+  `w32tm` showed the time source as **Local CMOS Clock**, never synced.
+  Connect sync kept working throughout: the AD connector authenticates with
+  its own account, not the machine's secure channel.
+- **Hypotheses.** (1) Machine password out of sync, e.g. after a snapshot
+  revert. (2) DC unreachable at start-up. (3) Time not synced to the domain.
+- **What separated them.** No 3210/5722 and a successful `sc_query` made (1)
+  unlikely. The 5719s lined up with boot times, so (2) explained the event
+  log but not the current failure. The time service was not in the domain
+  hierarchy at all, which is (3).
+- **Change.**
+
+```powershell
+w32tm /config /syncfromflags:domhier /update
+Restart-Service w32time
+w32tm /resync
+```
+
+- **Result.** Source became `DC01` (stratum 2, synced), and
+  `Test-ComputerSecureChannel` returned True. The fix and the recovery are
+  correlated; it was not proven that the clock alone caused the False, and the
+  clock offset before the change was not captured.
+- **Lessons.**
+  - A member server that never joined the domain time hierarchy will
+    eventually break Kerberos (5-minute skew limit) even while sync looks fine.
+  - "Sync is working" says nothing about the sync server's own domain health.
+- **Follow-up on the time root.** `DC01` (the PDC emulator, so the domain's
+  time root) was itself on **Local CMOS Clock** (stratum 1, `LOCL`): the whole
+  domain was following an unsynced hardware clock. VMware Tools periodic time
+  sync was already disabled. Pointed `DC01` at an external source:
+
+```powershell
+w32tm /config /manualpeerlist:"time.windows.com,0x8" /syncfromflags:manual /reliable:yes /update
+Restart-Service w32time
+w32tm /resync /rediscover
+```
+
+  Result: source `time.windows.com,0x8`, stratum 5, synced. Domain time now
+  runs external NTP → `DC01` → members.
+
 ## Not the same failure
 
 - Connect Health showing no registered AD DS service was a monitoring

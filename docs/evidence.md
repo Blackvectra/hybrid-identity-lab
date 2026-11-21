@@ -17,7 +17,7 @@ capture establishes, using three labels:
 | SSPR reset accepted | Observed | "Your password has been reset" confirmation |
 | Writeback | Operator-confirmed | Credentialed query to the DC succeeded with the SSPR password |
 | SSO GPO applied | Observed | `gpresult` shows the GPO applied; zone value `1` |
-| Seamless SSO (Kerberos path) | Observed + operator-confirmed | Ticket and device state below; password-free browser result reported |
+| Seamless SSO (Kerberos path) | Observed + operator-confirmed | Ticket and device state below, re-observed by the validation script on 2026-11-21 in the synced user's session; password-free browser result reported |
 | Hybrid device join / Autopilot | Not claimed | Client is AD joined only |
 
 ## Seamless SSO capture (redacted transcription)
@@ -33,6 +33,46 @@ Service ticket:   HTTP/autologon.microsoftazuread-sso.com
 Encryption:       AES-256-CTS-HMAC-SHA1-96
 KDC:              DC01.ad.example.invalid
 ```
+
+## Validation script runs
+
+`scripts/Test-HybridLabState.ps1`, read-only. Identifiers replaced.
+
+### DC01 (2026-11-21)
+
+| Check | Status | Detail |
+|---|---|---|
+| AD locator SRV (default resolver) | Pass | `dc01.ad.example.invalid` |
+| Secure channel | NotAssessed | Domain controller; member check does not apply |
+| AZUREADSSOACC present | Pass | Enabled; Kerberos key 5 days old (rollover due within 30 days of creation) |
+| Minimum password age | Recorded | `00:00:00`: the lab exception is in effect (previously not captured) |
+| Time source (manual check) | Fixed | Was Local CMOS Clock; now external NTP, stratum 5, synced |
+
+Device-state and SSO-ticket rows from this run came from the DC, not the
+client, and are not used as evidence.
+
+### SYNC01 (2026-11-21)
+
+| Check | Status | Detail |
+|---|---|---|
+| AD locator SRV (default resolver) | Pass | `dc01.ad.example.invalid` |
+| Connect scheduler | Pass | `Staging=False Scheduler=True` (now observed directly, not only from the earlier capture) |
+| Time source (manual check) | Fixed | Was Local CMOS Clock; now `DC01`, stratum 2, synced |
+| Secure channel | Fail, then Pass | Failed on first run; passed after the time service was joined to the domain hierarchy. See troubleshooting.md |
+
+### CLIENT01 (2026-11-21)
+
+| Check | Status | Detail |
+|---|---|---|
+| Time source (manual check) | Pass | `DC01` |
+| AD locator SRV (default resolver) | Pass | `dc01.ad.example.invalid` |
+| Secure channel | Pass | |
+| Device state | Recorded | `DomainJoined=YES AzureAdJoined=NO AzureAdPrt=NO` |
+| Seamless SSO ticket | Pass | Ticket present for `HTTP/autologon.microsoftazuread-sso.com` after opening the test URL |
+
+Session owner: `whoami` in the same session returned the synchronized lab
+user (`AD\lab-user`). `klist` lists the current logon session's tickets, so
+the SSO ticket belongs to that user.
 
 ## Gaps that would strengthen this
 

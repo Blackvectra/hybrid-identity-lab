@@ -48,8 +48,17 @@ KDC:              DC01.ad.example.invalid
 | Minimum password age | Recorded | `00:00:00`: the lab exception is in effect (previously not captured) |
 
 Device-state and SSO-ticket rows from this run came from the DC, not the
-client, and are not used as evidence. Pending: SYNC01 (Connect scheduler) and
-CLIENT01 (device state and SSO ticket after opening the test URL).
+client, and are not used as evidence.
+
+### SYNC01 (2026-11-21)
+
+| Check | Status | Detail |
+|---|---|---|
+| AD locator SRV (default resolver) | Pass | `dc01.ad.example.invalid` |
+| Connect scheduler | Pass | `Staging=False Scheduler=True` (now observed directly, not only from the earlier capture) |
+| Secure channel | Fail, then Pass | Failed on first run; passed after the time service was joined to the domain hierarchy. See troubleshooting.md |
+
+Pending: CLIENT01 (device state and SSO ticket after opening the test URL).
 
 ## Gaps that would strengthen this
 

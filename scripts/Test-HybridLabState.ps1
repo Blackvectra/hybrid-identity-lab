@@ -11,7 +11,7 @@ Collects the states this lab's evidence depends on and returns one object per
 check with Status Pass, Fail, NotAssessed, or Error. Makes no changes.
 
 .EXAMPLE
-.\Test-HybridLabState.ps1 -Domain ad.example.invalid -DcAddress 10.0.0.5 |
+.\Test-HybridLabState.ps1 -Domain ad.example.invalid -DcAddress 192.0.2.10 |
     Format-Table Check, RanOn, ExpectedOn, Status, Detail -AutoSize -Wrap
 #>
 [CmdletBinding()]

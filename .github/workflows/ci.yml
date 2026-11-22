@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  redaction:
+    # Public repo: real lab identifiers must never be committed. Generic
+    # patterns live here; the real names live in the REDACTION_DENYLIST
+    # secret (one literal string per line) so the list itself isn't public.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Private IPv4 addresses (use <DC_IP> or 192.0.2.0/24 instead)
+        run: |
+          if git ls-files -z | xargs -0 grep -nP '\b(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})\b'; then
+            echo "::error::Private IP address found. Replace with a placeholder."
+            exit 1
+          fi
+      - name: Denylisted identifiers
+        env:
+          DENYLIST: ${{ secrets.REDACTION_DENYLIST }}
+        run: |
+          if [ -z "$DENYLIST" ]; then
+            echo "::error::REDACTION_DENYLIST secret is not set, so real identifiers are unchecked. Add it under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          printf '%s\n' "$DENYLIST" | sed '/^[[:space:]]*$/d' > "$RUNNER_TEMP/deny.txt"
+          # -l lists matching files only, so secret values never appear in the log.
+          if git ls-files -z | xargs -0 grep -n -i -F -f "$RUNNER_TEMP/deny.txt" -l; then
+            echo "::error::Files above contain a denylisted identifier. Replace it with a placeholder."
+            exit 1
+          fi
+
+  powershell:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install analysis and test modules
+        shell: pwsh
+        run: |
+          Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
+          Install-Module Pester -MinimumVersion 5.0 -Force -Scope CurrentUser -SkipPublisherCheck
+      - name: PSScriptAnalyzer (errors fail; warnings reported)
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem -Recurse -Include *.ps1, *.psm1 | Where-Object FullName -notmatch '\\tests\\'
+          if (-not $files) { 'No PowerShell files.'; return }
+          $all = $files | ForEach-Object { Invoke-ScriptAnalyzer -Path $_.FullName -Severity Error, Warning }
+          $all | Format-Table ScriptName, Line, Severity, RuleName, Message -AutoSize -Wrap
+          if ($all | Where-Object Severity -eq 'Error') { throw 'PSScriptAnalyzer errors found.' }
+      - name: Windows PowerShell 5.1 syntax compatibility
+        # Lab VMs run Windows PowerShell 5.1; scripts that declare 5.1 must parse there.
+        shell: powershell
+        run: |
+          $bad = 0
+          Get-ChildItem -Recurse -Include *.ps1, *.psm1 |
+            Where-Object { (Get-Content $_.FullName -TotalCount 5) -match '#Requires -Version 5' } |
+            ForEach-Object {
+              $errs = $null
+              [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$errs) | Out-Null
+              if ($errs) { $bad++; $errs | ForEach-Object { "::error file=$($_.Extent.File),line=$($_.Extent.StartLineNumber)::$($_.Message)" } }
+              else { "OK (5.1 parse): $($_.Name)" }
+            }
+          if ($bad) { exit 1 }
+      - name: Pester
+        shell: pwsh
+        run: |
+          $dirs = Get-ChildItem -Recurse -Directory -Filter tests
+          if (-not $dirs) { 'No tests folder.'; return }
+          $r = Invoke-Pester -Path $dirs.FullName -Output Detailed -PassThru
+          if ($r.FailedCount -gt 0) { throw "$($r.FailedCount) Pester test(s) failed." }
